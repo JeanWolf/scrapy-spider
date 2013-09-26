@@ -10,7 +10,7 @@ from scrapy.selector import HtmlXPathSelector
 from scrapy.contrib.linkextractors.sgml import SgmlLinkExtractor
 from scrapy.contrib.spiders import CrawlSpider, Rule
 from shopspider.diy.funs import replace_item,init_item,handle_item #载入自定义方法
-from shopspider.diy.configs import conf
+from shopspider.diy.configs import *
 
 class CompanySpider(CrawlSpider): #单独抓商家
     name = 'shop'

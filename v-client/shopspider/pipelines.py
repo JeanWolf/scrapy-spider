@@ -6,15 +6,26 @@
 from hashlib import md5
 from time import mktime,strptime,strftime,localtime
 from datetime import date
-from shopspider.diy.configs import conf
+from shopspider.diy.configs import *
 
 class ShopspiderPipeline(object):
     def process_item(self, item, spider):
         try :
+            #--读入相关配置 -------------
+            show_message = conf_show_messages
+            dbtype = conf_db_type  #数据库类型  oracle   mysql
+            db_host = conf_db_host
+            db_port = conf_db_port
+            db_name = conf_db_name
+            db_sid = conf_db_sid
+            db_sname = conf_db_sname
+            db_user = conf_db_user
+            db_pass = conf_db_pass
+
+            tb_prefix = conf_table_prefix #  表头 eg  TEST  -->   TEST_SHOP   TEST_PRODUCT   TEST_PRODUCT_IMAGE
             #处理抓取时间
             #item['fetch_date'] = date.today()
-            if conf['show_messages'] : print "--------Pipeline Start---------------"
-            dbtype = conf['db_type']  #数据库类型  oracle   mysql
+            if show_messages : print "--------Pipeline Start---------------"
             if dbtype == 'oracle' :
                 import cx_Oracle
                 import os
@@ -23,20 +34,24 @@ class ShopspiderPipeline(object):
                 import MySQLdb
             else :
                 print '------Database Type Undefined==========='
-            if conf['show_messages'] : print "--------Connect "+dbtype+" Database Start---------"   #数据库连接
+            if show_messages : print "--------Connect "+dbtype+" Database Start---------"   #数据库连接
             if dbtype == 'oracle' :
-                conn =cx_Oracle.connect(conf['db_user']+'/'+conf['db_pass']+'@'+conf['db_host']+':1521/'+conf['db_sid'])
+                # connect to Oracle
+                #方法一 ： 使用 SID
+                #db_dsn = cx_Oracle.makedsn(db_host,db_port,db_sid)
+                #conn = cx_Oracle.connect(db_user,db_pass,db_dsn)
+                #方法二： 使用服务名
+                connstr = '%s/%s@%s:%s/%s' % (db_user,db_pass,db_host,db_port,db_sname)
+                conn =cx_Oracle.connect(connstr)
                 #conn =cx_Oracle.connect('phpzq/phptiger@172.16.4.223:18000/jlproject_primary')
             elif dbtype == 'mysql' :
-                conn = MySQLdb.connect(host=conf['db_host'],user=conf['db_user'],passwd=conf['db_pass'],port=3306,db=conf['db_name'],charset='utf8')
+                conn = MySQLdb.connect(host=db_host,user=db_user,passwd=db_pass,port=db_port,db=db_name,charset='utf8')
                 #conn = MySQLdb.connect(host='192.168.0.43',user='spider',passwd='spider',port=3306,db='spider',charset='utf8')
-                #conn = MySQLdb.connect(host='192.155.91.125',user='phpzq',passwd='phpzq',port=3306,db='phpspider',charset='utf8')#数据库连接信息
             cur = conn.cursor()
-            if conf['show_messages'] : print "--------Connect Successful---------"
+            if show_messages : print "--------Connect Successful---------"
             sql = ''
             sql1 = ''
             sql2 = ''
-            tb_prefix = conf['table_prefix'] #  表头 eg  TEST  -->   TEST_SHOP   TEST_PRODUCT   TEST_PRODUCT_IMAGE
             #处理抓取值
             if item['itemtype'] == 'shop' :
                 value = [
@@ -104,10 +119,10 @@ class ShopspiderPipeline(object):
                 else :
                     print '---SQL statement ERROR====='
                 sql = "".join([sql1, sql2])
-                if conf['show_messages'] : print "--------Start to Insert Shop---------"
+                if show_messages : print "--------Start to Insert Shop---------"
                 cur.execute(sql, value)
                 conn.commit()
-                if conf['show_messages'] : print "--------Shop Insert Successful--------"
+                if show_messages : print "--------Shop Insert Successful--------"
             elif item['itemtype'] == 'product' :
                 #处理抓取值 产品表
                 value = [
@@ -144,37 +159,38 @@ class ShopspiderPipeline(object):
                 else :
                     print '---SQL statement ERROR====='
                 sql = "".join([sql1, sql2])
-                if conf['show_messages'] : print "--------Start to Insert Product---------"
+                if show_messages : print "--------Start to Insert Product---------"
                 cur.execute(sql, value)
                 conn.commit()
-                if conf['show_messages'] : print "--------Product Insert Successful--------"
+                if show_messages : print "--------Product Insert Successful--------"
                 #-另存一份产品主图
                 if item['photo_src'] != '' :
                     value = [
                         #str(item['image_id']),    #唯一标识
                         #item['fetch_date'],    #抓取日期
                         str(item['p_id']),    #1产品id
-                        #str(item['photo']),    #图片
+                        str(item['photo']),    #图片相对路径
                         str(item['photo_src']) #图片源地址
                     ]
                     if dbtype == 'oracle' :
-                        sql1 = 'INSERT INTO '+tb_prefix+'_PRODUCT_IMAGE (P_ID, IMAGE_SRC) VALUES '
-                        sql2 = '(:p_id, :image_src)'
+                        sql1 = 'INSERT INTO '+tb_prefix+'_PRODUCT_IMAGE (P_ID, IMAGE, IMAGE_SRC) VALUES '
+                        sql2 = '(:p_id, :image, :image_src)'
                     elif dbtype == 'mysql' :
-                        sql1 = 'INSERT INTO `'+tb_prefix+'_PRODUCT_IMAGE` (`P_ID`, `IMAGE_SRC`) VALUES '
-                        sql2 = '(%s, %s)'
+                        sql1 = 'INSERT INTO `'+tb_prefix+'_PRODUCT_IMAGE` (`P_ID`, `IMAGE`, `IMAGE_SRC`) VALUES '
+                        sql2 = '(%s, %s, %s)'
                     else :
                         print '---SQL statement ERROR====='
 
                     sql = "".join([sql1, sql2])
-                    if conf['show_messages'] : print "--------Start to Insert Product Main Image---------"
+                    if show_messages : print "--------Start to Insert Product Main Image---------"
                     cur.execute(sql, value)
                     conn.commit()
-                    if conf['show_messages'] : print "--------Product Main Image Insert Successful--------"
+                    if show_messages : print "--------Product Main Image Insert Successful--------"
 
-                #处理抓取值 产品图片表
+                #处理抓取值 多图字段
                 if item['image_src'] != '' :
                     img_srcs = item['image_src'].split('|')
+                    imgs = item['image'].split('|')
                     count = len(img_srcs)
                     i = 0
                     while i < count :
@@ -182,23 +198,23 @@ class ShopspiderPipeline(object):
                             #str(item['image_id']),    #唯一标识
                             #item['fetch_date'],    #抓取日期
                             str(item['p_id']),    #1产品id
-                            #str(imgs[i]),    #图片
+                            str(imgs[i]),    #图片
                             str(img_srcs[i]) #图片源地址
                         ]
                         if dbtype == 'oracle' :
-                            sql1 = 'INSERT INTO '+tb_prefix+'_PRODUCT_IMAGE (P_ID, IMAGE_SRC) VALUES '
-                            sql2 = '(:p_id, :image_src)'
+                            sql1 = 'INSERT INTO '+tb_prefix+'_PRODUCT_IMAGE (P_ID, IMAGE, IMAGE_SRC) VALUES '
+                            sql2 = '(:p_id, :image, :image_src)'
                         elif dbtype == 'mysql' :
-                            sql1 = 'INSERT INTO `'+tb_prefix+'_PRODUCT_IMAGE` (`P_ID`, `IMAGE_SRC`) VALUES '
-                            sql2 = '(%s, %s)'
+                            sql1 = 'INSERT INTO `'+tb_prefix+'_PRODUCT_IMAGE` (`P_ID`, `IMAGE`, `IMAGE_SRC`) VALUES '
+                            sql2 = '(%s, %s, %s)'
                         else :
                             print '---SQL statement ERROR====='
 
                         sql = "".join([sql1, sql2])
-                        if conf['show_messages'] : print "--------Start to Insert Product Multi Image---------"
+                        if show_messages : print "--------Start to Insert Product Multi Image---------"
                         cur.execute(sql, value)
                         conn.commit()
-                        if conf['show_messages'] : print "--------Product Multi Image Insert Successful--------"
+                        if show_messages : print "--------Product Multi Image Insert Successful--------"
                         i += 1
             else :
                 print '---ItemType Undefined================='
@@ -206,10 +222,10 @@ class ShopspiderPipeline(object):
             conn.close()
             del sql,sql1,sql2,cur,conn,item,value,tb_prefix,dbtype #銷毀變量
         except Exception,e:
-        	if conf['show_messages'] : print '--------Pipeline Error Start---------------'
+        	if show_messages : print '--------Pipeline Error Start---------------'
         	print e
-        	if conf['show_messages'] : print '--------Pipeline Error End---------------'
-        if conf['show_messages'] : print '--------Pipeline End---------------'
-        if conf['show_messages'] : print '\t==============Crawl Log Information============='
-        return '======== Page Crawl End=============\r\n\r\n'
+        	if show_messages : print '--------Pipeline Error End---------------'
+        if show_messages : print '--------Pipeline End---------------'
+        if show_messages : print '\t==============Crawl Log Information============='
+        return '----======== Page Crawl End=============\r\n\r\n'
         #return item

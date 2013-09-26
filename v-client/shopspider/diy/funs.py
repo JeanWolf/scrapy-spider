@@ -5,7 +5,7 @@ reload(sys)
 sys.setdefaultencoding('utf8')
 
 from shopspider.items import ShopItem,ProductItem #两种ItemType
-from shopspider.diy.configs import conf
+from shopspider.diy.configs import *
 
 def get_type (tobj) : #返回数据类型
     t = str(type(tobj))

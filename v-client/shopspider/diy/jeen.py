@@ -133,23 +133,25 @@ class Jeen (object) :
             if self.handle_image :
                 temps = ['logo_src','photo_src']
                 for temp in temps :
-                    item[temp] = self.handle_imgsrc(item['url'],item[temp])
-                    t_img_file = item[temp].split('/')[-1]
-                    t_img = '/%s/%s/%s' % (self.img_save_dir,item['com_id'],t_img_file)
-                    t_img = self.handle_path(t_img)
-                    item[temp.replace('_src','')] = t_img
-                    if self.download_image :
-                        self.downloadImage(t_img,item[temp])
+                    if item[temp] != '' :
+                        item[temp] = self.handle_imgsrc(item['url'],item[temp])
+                        t_img_file = item[temp].split('/')[-1]
+                        t_img = '/%s/%s/%s' % (self.img_save_dir,item['com_id'],t_img_file)
+                        t_img = self.handle_path(t_img)
+                        item[temp.replace('_src','')] = t_img
+                        if self.download_image :
+                            self.downloadImage(t_img,item[temp])
             temps = ['id','fetch_date','com_id','name','contactor','address','postcode','area','country','tel','phone','fax','email','qq','other','title','content','url','website','logo','logo_src','cet','photo','photo_src','reg_address','reg_money','create_time','reg_number','boss','reg_com','type','valid','custom','market','market_address','brand','money','employees','industry','range','modes','exports','imports','bank','plant_area','iso','fetch_level','fetch_reg_time','fetch_auth','fetch_auth_time','fetch_evaluate','fetch_credit','fetch_sale_data','fetch_other']
         elif item['itemtype'] == 'product' :
             if self.handle_image :
-                item['photo_src'] = self.handle_imgsrc(item['purl'],item['photo_src'])
-                t_file = item['photo_src'].split('/')[-1] #文件名
-                t_photo = '/%s/%s/%s/%s' % (self.img_save_dir,item['com_id'],item['p_id'],t_file)
-                t_photo = self.handle_path(t_photo)
-                item['photo'] = t_photo
-                if self.download_image :
-                    self.downloadImage(t_photo,item['photo_src'])
+                if item['photo_src'] != '' :
+                    item['photo_src'] = self.handle_imgsrc(item['purl'],item['photo_src'])
+                    t_file = item['photo_src'].split('/')[-1] #文件名
+                    t_photo = '/%s/%s/%s/%s' % (self.img_save_dir,item['com_id'],item['p_id'],t_file)
+                    t_photo = self.handle_path(t_photo)
+                    item['photo'] = t_photo
+                    if self.download_image :
+                        self.downloadImage(t_photo,item['photo_src'])
                 if item['image_src'] != '' :
                     temps = item['image_src'].split('|')
                     t,t_src = '',''

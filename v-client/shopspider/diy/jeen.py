@@ -300,7 +300,7 @@ class Jeen (object) :
         if os.path.exists(t_dir) == False :#判断目录是否存在
             os.makedirs(t_dir) #创建目录
         i = 0
-        if os.path.exists(real_path) == False and i < self.retry_times :
+        while os.path.exists(real_path) == False and i < self.retry_times :
             i = i + 1
             user_agent = { 'User-Agent' : self.get_user_agent() }  # 使用随机的 User-Agent
             if self.use_proxy :
